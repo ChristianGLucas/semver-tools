@@ -1,0 +1,243 @@
+// Data contracts for christiangeorgelucas/semver-tools.
+//
+// The domain has four natural entity shapes — a single version, a range, a
+// pair of versions, and a list of versions against a range — so unlike a
+// package with one universal envelope (e.g. Image), this package reuses a
+// small family of request/result envelopes across its nodes wherever two
+// nodes genuinely share a shape, rather than minting a one-off message per
+// node. Every message name is prefixed `Semver` so it is never a bare
+// `Version`/`Result`/`Range` that could collide by name with another
+// package's message on this platform.
+//
+// All nodes wrap npm's node-semver (ISC license, https://github.com/npm/node-semver),
+// the reference implementation of the SemVer 2.0.0 spec and of npm's range
+// syntax (^, ~, comparators, hyphen ranges, x-ranges). Every node is a pure,
+// stateless, deterministic function: parse/validate/compare/range-test in,
+// a structured result out. Malformed input never crashes a node — it comes
+// back as a populated `error` field with the rest of the message at its zero
+// value, exactly like node-semver's own null-on-failure convention.
+
+syntax = "proto3";
+
+package christiangeorgelucas.semver_tools;
+
+// ---- Requests ---------------------------------------------------------
+
+// A single version string to parse.
+message SemverParseRequest {
+  // The version string to parse, e.g. "1.2.3-alpha.1+build.5".
+  string version = 1;
+  // Loose parsing: tolerates some non-conformant strings npm itself accepts
+  // in the wild (a leading "v", extra whitespace, etc.).
+  bool loose = 2;
+}
+
+// A loose/decorated version string to clean into strict SemVer form.
+message SemverCleanRequest {
+  // e.g. "  =v1.2.3 " -> "1.2.3". Must still contain a valid version;
+  // Clean does not search prose for one (use Coerce for that).
+  string version = 1;
+  bool loose = 2;
+}
+
+// Arbitrary text to coerce a version out of.
+message SemverCoerceRequest {
+  // Free-form text that may contain a version-like substring,
+  // e.g. "next-9.3.5" -> "9.3.5", or "  v2  " -> "2.0.0".
+  string text = 1;
+  // Also capture a trailing prerelease/build tag while coercing.
+  bool include_prerelease = 2;
+  // Scan right-to-left instead of left-to-right, so "1.2.3.4" coerces
+  // "2.3.4" (the right-most coercible run) instead of "1.2.3".
+  bool right_to_left = 3;
+}
+
+// Two versions, for the comparison-family nodes (Compare, Diff). Each option
+// field is meaningful to exactly one of the two nodes; sharing the shape
+// (rather than minting two near-identical messages) keeps both nodes
+// pluggable into the same upstream edge in a flow.
+message SemverVersionPairRequest {
+  string version1 = 1;
+  string version2 = 2;
+  // Compare only: loose parsing. Diff ignores this — node-semver's diff()
+  // has no options parameter and always parses strictly.
+  bool loose = 3;
+  // Compare only: break ties between two versions that are otherwise equal
+  // under the SemVer spec (which ignores build metadata) using their build
+  // metadata as a final tiebreaker, for a total order. Diff ignores this field.
+  bool consider_build = 4;
+}
+
+// A version to increment, plus the release type and (for prerelease-family
+// types) an optional identifier.
+message SemverIncrementRequest {
+  string version = 1;
+  // One of: major, minor, patch, premajor, preminor, prepatch, prerelease, release.
+  string release_type = 2;
+  // Prerelease identifier, e.g. "beta" for 1.2.3 -> 1.2.4-beta.0. Only
+  // meaningful for the pre* release types and prerelease itself.
+  string identifier = 3;
+  // Starting number for a new prerelease identifier: "0" (default) or "1".
+  // Empty means the library default.
+  string identifier_base = 4;
+  bool loose = 5;
+}
+
+// A version to truncate to a coarser precision.
+message SemverTruncateRequest {
+  string version = 1;
+  // One of: major, minor, patch, premajor, preminor, prepatch, prerelease.
+  string truncation = 2;
+  bool loose = 3;
+}
+
+// A bare range string, for the nodes that operate on a range alone
+// (CleanRange, MinVersion, ToComparators).
+message SemverRangeRequest {
+  string range = 1;
+  bool loose = 2;
+  // Treat versions with a prerelease tag as eligible even when the range
+  // itself has no prerelease tag on the same [major,minor,patch] tuple —
+  // widens matching beyond the SemVer spec's default prerelease exclusion.
+  bool include_prerelease = 3;
+}
+
+// A version tested against a range: Satisfies and VersionVsRange share this shape.
+message SemverSatisfiesRequest {
+  string version = 1;
+  string range = 2;
+  bool loose = 3;
+  bool include_prerelease = 4;
+}
+
+// A list of versions tested against a range: MaxSatisfying and MinSatisfying.
+message SemverListRangeRequest {
+  repeated string versions = 1;
+  string range = 2;
+  bool loose = 3;
+  bool include_prerelease = 4;
+}
+
+// A list of versions to sort.
+message SemverSortRequest {
+  repeated string versions = 1;
+  // False (default): ascending. True: descending.
+  bool descending = 2;
+  bool loose = 3;
+}
+
+// Two ranges compared to each other: Intersects and Subset.
+message SemverTwoRangeRequest {
+  // Subset asks: is every version satisfying range1 also satisfying range2?
+  string range1 = 1;
+  string range2 = 2;
+  bool loose = 3;
+  bool include_prerelease = 4;
+}
+
+// ---- Results ------------------------------------------------------------
+
+// The full structured breakdown of a parsed version. Emitted by Parse.
+message SemverVersion {
+  // False when `version` did not parse; every other field is then at its
+  // zero value and `error` explains why.
+  bool valid = 1;
+  // The normalized version string (e.g. a loose "=v1.2.3" input
+  // normalizes to "1.2.3").
+  string version = 2;
+  int32 major = 3;
+  int32 minor = 4;
+  int32 patch = 5;
+  // Dot-separated prerelease identifiers, e.g. ["alpha", "1"] for
+  // "1.2.3-alpha.1". Empty when the version has no prerelease tag.
+  repeated string prerelease = 6;
+  // Dot-separated build-metadata identifiers, e.g. ["build", "5"] for
+  // "+build.5". Empty when the version has no build metadata.
+  repeated string build = 7;
+  // Empty on success; a stable, human-readable reason on failure.
+  string error = 8;
+}
+
+// A single resulting version string, shared by every node whose job is
+// "produce one version or fail": Clean, Coerce, Increment, Truncate,
+// MinVersion, MaxSatisfying, MinSatisfying.
+message SemverVersionResult {
+  // False when there is no result (invalid input, or no list entry
+  // satisfies the range); `version` is then empty.
+  bool ok = 1;
+  string version = 2;
+  // Empty on success; a stable, human-readable reason on failure. Also
+  // empty when ok=false because a list search simply found no match
+  // (that is not an error condition, just an empty result).
+  string error = 3;
+}
+
+// A single resulting range string. Emitted by CleanRange.
+message SemverRangeResult {
+  bool ok = 1;
+  // The normalized comparator-set form of the input range, e.g.
+  // "~1.2" -> ">=1.2.0 <1.3.0-0".
+  string range = 2;
+  string error = 3;
+}
+
+// The ordering between two versions. Emitted by Compare.
+message SemverCompareResult {
+  // -1, 0, or 1 (version1 <, ==, > version2).
+  int32 comparison = 1;
+  // The same result as a word: "lt", "eq", or "gt".
+  string relation = 2;
+  string error = 3;
+}
+
+// Which part changed between two versions. Emitted by Diff.
+message SemverDiffResult {
+  // True when the two versions are identical (release_type is then empty).
+  bool equal = 1;
+  // One of: major, minor, patch, prerelease — or with a "pre" prefix (e.g.
+  // "preminor") when the higher version is itself a prerelease. Empty when
+  // equal=true.
+  string release_type = 2;
+  string error = 3;
+}
+
+// Whether a version satisfies a range. Emitted by Satisfies.
+message SemverSatisfiesResult {
+  bool satisfies = 1;
+  string error = 2;
+}
+
+// A sorted list of versions. Emitted by Sort.
+message SemverSortResult {
+  // Ascending or descending per the request's `descending` flag.
+  repeated string versions = 1;
+  string error = 2;
+}
+
+// Where a version sits relative to a range. Emitted by VersionVsRange.
+message SemverRangePositionResult {
+  // One of: "below" (version is lower than every version the range could
+  // match), "within" (the version satisfies the range), "above" (version is
+  // higher than every version the range could match).
+  string position = 1;
+  string error = 2;
+}
+
+// A single boolean predicate over two ranges, shared by Intersects and Subset.
+message SemverBoolResult {
+  bool result = 1;
+  string error = 2;
+}
+
+// One OR-branch of a range's normal form: an ANDed list of comparators
+// (e.g. the range "1.2.3 || >=2.0.0" has two branches, one comparator each).
+message SemverComparatorSet {
+  repeated string comparators = 1;
+}
+
+// The normal form of a range: an OR-list of ANDed comparator sets.
+// Emitted by ToComparators.
+message SemverComparatorSets {
+  repeated SemverComparatorSet sets = 1;
+  string error = 2;
+}

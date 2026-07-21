@@ -1,0 +1,174 @@
+name: christiangeorgelucas/semver-tools
+version: 0.1.0
+language: typescript
+description: >-
+  Composable Axiom semantic-versioning nodes wrapping npm/node-semver (ISC
+  license, https://github.com/npm/node-semver) — the reference implementation
+  of the SemVer 2.0.0 spec and of npm's range syntax (^, ~, comparators,
+  hyphen ranges, x-ranges, || unions). Parse a version into its components,
+  clean/coerce loose or decorated text into strict SemVer, compare or diff
+  two versions, increment by release type, truncate to a coarser precision,
+  test or find versions against a range (satisfies, max/min satisfying, min
+  version, position relative to a range), validate/normalize/decompose a
+  range, and sort a list of versions. Every node is a pure, stateless,
+  deterministic function; malformed input returns a structured error instead
+  of crashing.
+author: Christian George Lucas
+license: MIT
+tags:
+  - semver
+  - semantic-versioning
+  - version
+  - versioning
+  - npm
+  - range
+  - parsing
+nodes:
+    - name: Parse
+      input: SemverParseRequest
+      output: SemverVersion
+      description: >-
+        Parse a version string into its structured components: major, minor,
+        patch, dot-separated prerelease identifiers, and dot-separated build
+        identifiers. `version` in the result is the normalized form. `valid`
+        is false with every other field at its zero value when the input
+        does not parse as SemVer 2.0.0 (optionally loosened by `loose`).
+        Deterministic; never throws.
+    - name: Clean
+      input: SemverCleanRequest
+      output: SemverVersionResult
+      description: >-
+        Clean a decorated version string into strict normalized SemVer form
+        — strips a leading "v"/"=" and surrounding whitespace, e.g.
+        "  =v1.2.3 " -> "1.2.3". The input must still contain exactly one
+        valid version; Clean does not search free-form prose for one (use
+        Coerce for that). `ok` is false when the input is not cleanable.
+    - name: Coerce
+      input: SemverCoerceRequest
+      output: SemverVersionResult
+      description: >-
+        Extract a version out of arbitrary, loosely-versioned text — the
+        widest of the parsing nodes, e.g. "next-9.3.5" -> "9.3.5",
+        "  v2  " -> "2.0.0". `right_to_left` finds the right-most coercible
+        run instead of the left-most. `include_prerelease` additionally
+        captures a trailing prerelease/build tag. `ok` is false when no
+        coercible version is found anywhere in the text.
+    - name: Compare
+      input: SemverVersionPairRequest
+      output: SemverCompareResult
+      description: >-
+        Compare two versions and return their ordering: -1/0/1 (also as
+        "lt"/"eq"/"gt" in `relation`), following SemVer 2.0.0 precedence
+        rules. `consider_build` breaks a tie between two versions the spec
+        considers equal using their build metadata, for a total order. A
+        malformed version is a structured error, not a crash.
+    - name: Increment
+      input: SemverIncrementRequest
+      output: SemverVersionResult
+      description: >-
+        Increment a version by a release type: major, minor, patch,
+        premajor, preminor, prepatch, prerelease, or release. Examples:
+        inc("1.2.3", "patch") -> "1.2.4"; inc("1.2.3-beta.5", "release") ->
+        "1.2.3". `identifier` names a prerelease tag (e.g. "beta");
+        `identifier_base` sets the starting number ("0" or "1"). `ok` is
+        false when `release_type` is invalid or `version` does not parse.
+    - name: Diff
+      input: SemverVersionPairRequest
+      output: SemverDiffResult
+      description: >-
+        Report which part changed between two versions: "major", "minor",
+        "patch", or "prerelease" — with a "pre" prefix when the higher
+        version is itself a prerelease. `equal` is true (release_type empty)
+        for identical versions. A malformed version is a structured error.
+    - name: Truncate
+      input: SemverTruncateRequest
+      output: SemverVersionResult
+      description: >-
+        Truncate a version to a coarser precision, clearing everything finer
+        and dropping any prerelease tag: truncate("2.3.4-alpha.1", "minor")
+        -> "2.3.0". A pre* truncation type is a no-op. `ok` is false when
+        `truncation` is invalid or `version` does not parse.
+    - name: CleanRange
+      input: SemverRangeRequest
+      output: SemverRangeResult
+      description: >-
+        Validate a range and normalize it to its comparator-set form, e.g.
+        "~1.2" -> ">=1.2.0 <1.3.0-0". Accepts every npm range syntax: exact
+        versions, comparators, caret, tilde, hyphen ranges, x-ranges, and ||
+        unions. `ok` is false when the input is not a syntactically valid
+        range.
+    - name: Satisfies
+      input: SemverSatisfiesRequest
+      output: SemverSatisfiesResult
+      description: >-
+        Test whether a version satisfies a range, e.g. satisfies("1.2.3",
+        "^1.0.0") -> true. `include_prerelease` widens matching to admit a
+        prerelease version outside the range's own [major,minor,patch]
+        tuple. An unparseable version simply does not satisfy; an invalid
+        range is a distinguished structured error.
+    - name: MaxSatisfying
+      input: SemverListRangeRequest
+      output: SemverVersionResult
+      description: >-
+        Pick the highest version in `versions` that satisfies `range`, e.g.
+        maxSatisfying(["1.2.3","1.3.0","2.0.0"], "^1.0.0") -> "1.3.0".
+        Invalid entries in `versions` are silently skipped. `ok` is false
+        (no error) when nothing matches; false WITH an error when `range`
+        itself is invalid.
+    - name: MinSatisfying
+      input: SemverListRangeRequest
+      output: SemverVersionResult
+      description: >-
+        Pick the lowest version in `versions` that satisfies `range`, e.g.
+        minSatisfying(["1.2.3","1.3.0","2.0.0"], "^1.0.0") -> "1.2.3".
+        Invalid entries in `versions` are silently skipped, mirroring
+        MaxSatisfying.
+    - name: MinVersion
+      input: SemverRangeRequest
+      output: SemverVersionResult
+      description: >-
+        Compute the lowest version that could possibly satisfy a range,
+        structurally from the range alone — not from a supplied list.
+        minVersion(">=1.2.3 <2.0.0") -> "1.2.3". `ok` is false when the
+        range is invalid.
+    - name: Sort
+      input: SemverSortRequest
+      output: SemverSortResult
+      description: >-
+        Sort a list of versions in SemVer precedence order — ascending by
+        default, `descending: true` to reverse. Unlike MaxSatisfying/
+        MinSatisfying, EVERY entry must be a valid SemVer version: an
+        unparseable entry fails the whole call with a structured error
+        (`versions` empty) rather than being silently dropped.
+    - name: VersionVsRange
+      input: SemverSatisfiesRequest
+      output: SemverRangePositionResult
+      description: >-
+        Report where a version sits relative to a range: "below", "within",
+        or "above". versionVsRange("2.0.0", "<1.0.0") -> "above". `position`
+        is empty with `error` set when the version/range is invalid, or when
+        the range itself is impossible to satisfy (neither above nor below
+        any version is well-defined).
+    - name: Intersects
+      input: SemverTwoRangeRequest
+      output: SemverBoolResult
+      description: >-
+        Test whether two ranges share at least one version that satisfies
+        both, e.g. intersects(">=1.0.0 <2.0.0", ">=1.5.0 <3.0.0") -> true.
+        `result` is false with `error` set when either range is invalid.
+    - name: Subset
+      input: SemverTwoRangeRequest
+      output: SemverBoolResult
+      description: >-
+        Test whether range1 is a subset of range2 — every version satisfying
+        range1 also satisfies range2. subset("1.2.3", "^1.0.0") -> true.
+        Order matters. `result` is false with `error` set when either range
+        is invalid.
+    - name: ToComparators
+      input: SemverRangeRequest
+      output: SemverComparatorSets
+      description: >-
+        Decompose a range into its normal form: an OR-list of ANDed
+        comparator sets. toComparators("1.2.3 || >=2.0.0") ->
+        [{comparators:["1.2.3"]}, {comparators:[">=2.0.0"]}]. `sets` is
+        empty with `error` set when the range is not syntactically valid.
