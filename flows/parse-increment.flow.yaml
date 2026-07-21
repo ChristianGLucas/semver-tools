@@ -1,0 +1,19 @@
+name: parse-increment
+description: Parse a version, then increment the normalized version it produces — proves the shared "version" scalar field composes across Parse's output and Increment's input.
+nodes:
+    - alias: parsed
+      package: christiangeorgelucas/semver-tools@0.1.0
+      node: Parse
+      col: 0
+      row: 0
+    - alias: bumped
+      package: christiangeorgelucas/semver-tools@0.1.0
+      node: Increment
+      col: 1
+      row: 0
+edges:
+    - from: parsed
+      to: bumped
+      adapter:
+        literal('patch'): release_type
+        version: version
