@@ -1,11 +1,11 @@
 import { SemverTruncateRequest, SemverVersionResult } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
-import * as semver from 'semver';
 import {
   MAX_VERSION_CHARS,
   TRUNCATE_RELEASE_TYPES,
   checkLen,
   errorMessage,
+  semverTruncate,
 } from './lib';
 
 /**
@@ -39,7 +39,7 @@ export function truncate(ax: AxiomContext, input: SemverTruncateRequest): Semver
     }
 
     const loose = input.getLoose();
-    const result = semver.truncate(version, truncation as semver.ReleaseType, { loose });
+    const result = semverTruncate(version, truncation, { loose });
 
     if (result === null) {
       out.setOk(false);

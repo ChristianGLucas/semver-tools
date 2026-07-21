@@ -21,6 +21,8 @@
 // here as a deliberately simple, generous, defense-in-depth ceiling — not
 // because a legitimate range/list ever approaches it.
 
+import * as semverModule from 'semver';
+
 /** Generous ceiling for a single version string, matching node-semver's own
  * internal MAX_LENGTH so this package's error message fires before node-semver's
  * generic one does. */
@@ -77,3 +79,24 @@ export const TRUNCATE_RELEASE_TYPES = [
   'premajor', 'preminor', 'prepatch',
   'prerelease',
 ] as const;
+
+/**
+ * Typed access to node-semver's `truncate()` export.
+ *
+ * @types/semver@7.7.x has not yet caught up with node-semver@7.8.x's
+ * `truncate` export — the runtime module DOES export it (confirmed against
+ * node_modules/semver/index.js); only the .d.ts is behind. A `declare module
+ * 'semver' { ... }` augmentation was tried first, but Axiom's local dev
+ * server compiles nodes/ through ts-node against the assembled .axiom/dev/
+ * build context, and the augmentation's declaration merge did not take
+ * effect there even though `axiom test`'s plain jest/ts-jest run picked it
+ * up fine — so it looked correct until the first `axiom dev` invoke. This
+ * single narrow cast is the contained, environment-independent fix; every
+ * call site gets the real `(version, truncation, options) => string | null`
+ * signature back.
+ */
+export const semverTruncate: (
+  version: string,
+  truncation: string,
+  options?: { loose?: boolean }
+) => string | null = (semverModule as unknown as { truncate: typeof semverTruncate }).truncate;
