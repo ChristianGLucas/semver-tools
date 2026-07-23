@@ -4,7 +4,7 @@ Composable Axiom nodes for semantic versioning, wrapping [npm/node-semver](https
 (ISC license) — the reference implementation of the [SemVer 2.0.0 spec](https://semver.org/spec/v2.0.0.html)
 and of npm's range syntax (`^`, `~`, comparators, hyphen ranges, x-ranges, `||` unions).
 
-Built for the [Axiom](https://axiom.dev) marketplace, published under the `christiangeorgelucas` handle.
+Built for the [Axiom](https://axiomide.com) marketplace, published under the `christiangeorgelucas` handle.
 
 ## What's here
 
