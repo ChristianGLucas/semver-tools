@@ -1,7 +1,7 @@
 import { SemverTwoRangeRequest, SemverBoolResult } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
 import * as semver from 'semver';
-import { MAX_RANGE_CHARS, checkLen, errorMessage } from './lib';
+import { errorMessage } from './lib';
 
 /**
  * Test whether range1 is a subset of range2 — i.e. every version that
@@ -20,8 +20,6 @@ export function subset(ax: AxiomContext, input: SemverTwoRangeRequest): SemverBo
   try {
     const range1 = input.getRange1();
     const range2 = input.getRange2();
-    checkLen(range1, 'range1', MAX_RANGE_CHARS);
-    checkLen(range2, 'range2', MAX_RANGE_CHARS);
 
     const opts = {
       loose: input.getLoose(),

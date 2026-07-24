@@ -35,8 +35,9 @@ describe('Sort', () => {
     expect(result.getError()).toContain('garbage');
   });
 
-  it('rejects an oversized versions list as a structured error', () => {
+  it('handles a large versions list without a crash (size is the platform\'s concern, not this node\'s)', () => {
     const result = doSort(new Array(5000).fill('1.0.0'));
-    expect(result.getError()).toContain('more than');
+    expect(result.getError()).toBe('');
+    expect(result.getVersionsList().length).toBe(5000);
   });
 });

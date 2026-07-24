@@ -1,7 +1,7 @@
 import { SemverSatisfiesRequest, SemverSatisfiesResult } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
 import * as semver from 'semver';
-import { MAX_VERSION_CHARS, MAX_RANGE_CHARS, checkLen, errorMessage } from './lib';
+import { MAX_VERSION_CHARS, checkLen, errorMessage } from './lib';
 
 /**
  * Test whether a version satisfies a range, e.g. satisfies("1.2.3",
@@ -24,7 +24,6 @@ export function satisfies(ax: AxiomContext, input: SemverSatisfiesRequest): Semv
     const version = input.getVersion();
     const range = input.getRange();
     checkLen(version, 'version', MAX_VERSION_CHARS);
-    checkLen(range, 'range', MAX_RANGE_CHARS);
 
     const opts = {
       loose: input.getLoose(),

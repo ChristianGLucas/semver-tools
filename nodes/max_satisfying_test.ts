@@ -35,9 +35,9 @@ describe('MaxSatisfying', () => {
     expect(result.getError()).not.toBe('');
   });
 
-  it('rejects an oversized versions list as a structured error', () => {
+  it('handles a large versions list without a crash (size is the platform\'s concern, not this node\'s)', () => {
     const result = maxSat(new Array(5000).fill('1.0.0'), '^1.0.0');
-    expect(result.getOk()).toBe(false);
-    expect(result.getError()).toContain('more than');
+    expect(result.getOk()).toBe(true);
+    expect(result.getVersion()).toBe('1.0.0');
   });
 });

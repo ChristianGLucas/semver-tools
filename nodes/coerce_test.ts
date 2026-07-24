@@ -39,11 +39,11 @@ describe('Coerce', () => {
     expect(result.getError()).not.toBe('');
   });
 
-  it('rejects oversized text as a structured error', () => {
+  it('handles large text without a crash (size is the platform\'s concern, not this node\'s)', () => {
     const input = new SemverCoerceRequest();
-    input.setText('x'.repeat(20_000));
+    input.setText('x'.repeat(20_000) + '1.2.3');
     const result = coerce(ctx, input);
-    expect(result.getOk()).toBe(false);
-    expect(result.getError()).toContain('longer than');
+    expect(result.getOk()).toBe(true);
+    expect(result.getVersion()).toBe('1.2.3');
   });
 });

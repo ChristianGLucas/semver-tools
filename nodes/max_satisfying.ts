@@ -1,14 +1,7 @@
 import { SemverListRangeRequest, SemverVersionResult } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
 import * as semver from 'semver';
-import {
-  MAX_VERSION_CHARS,
-  MAX_RANGE_CHARS,
-  MAX_LIST_ENTRIES,
-  checkLen,
-  checkListLen,
-  errorMessage,
-} from './lib';
+import { MAX_VERSION_CHARS, checkLen, errorMessage } from './lib';
 
 /**
  * Pick the highest version in `versions` that satisfies `range`, e.g.
@@ -28,9 +21,7 @@ export function maxSatisfying(ax: AxiomContext, input: SemverListRangeRequest): 
   try {
     const versions = input.getVersionsList();
     const range = input.getRange();
-    checkListLen(versions, 'versions', MAX_LIST_ENTRIES);
     versions.forEach((v, i) => checkLen(v, `versions[${i}]`, MAX_VERSION_CHARS));
-    checkLen(range, 'range', MAX_RANGE_CHARS);
 
     const opts = {
       loose: input.getLoose(),

@@ -1,7 +1,7 @@
 import { SemverCoerceRequest, SemverVersionResult } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
 import * as semver from 'semver';
-import { MAX_TEXT_CHARS, checkLen, errorMessage } from './lib';
+import { errorMessage } from './lib';
 
 /**
  * Extract a version out of arbitrary, loosely-versioned text — the widest of
@@ -25,7 +25,6 @@ export function coerce(ax: AxiomContext, input: SemverCoerceRequest): SemverVers
   const out = new SemverVersionResult();
   try {
     const text = input.getText();
-    checkLen(text, 'text', MAX_TEXT_CHARS);
 
     const coerced = semver.coerce(text, {
       includePrerelease: input.getIncludePrerelease(),

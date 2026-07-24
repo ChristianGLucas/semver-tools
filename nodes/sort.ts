@@ -1,13 +1,7 @@
 import { SemverSortRequest, SemverSortResult } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
 import * as semver from 'semver';
-import {
-  MAX_VERSION_CHARS,
-  MAX_LIST_ENTRIES,
-  checkLen,
-  checkListLen,
-  errorMessage,
-} from './lib';
+import { MAX_VERSION_CHARS, checkLen, errorMessage } from './lib';
 
 /**
  * Sort a list of versions in SemVer precedence order — ascending by
@@ -24,7 +18,6 @@ export function sort(ax: AxiomContext, input: SemverSortRequest): SemverSortResu
   const out = new SemverSortResult();
   try {
     const versions = input.getVersionsList();
-    checkListLen(versions, 'versions', MAX_LIST_ENTRIES);
     versions.forEach((v, i) => checkLen(v, `versions[${i}]`, MAX_VERSION_CHARS));
 
     const loose = input.getLoose();

@@ -13,13 +13,11 @@
 //
 // Cost bound rationale: node-semver 7.x itself already caps a single VERSION
 // string at 256 characters (classes/semver.js, MAX_LENGTH) — that guard is
-// upstream and this package inherits it for free. It does NOT cap a RANGE
-// string (a range is built by splitting on "||"/whitespace, and an
-// adversarially long one does linear-ish extra regex work per comparator) or
-// the free-form text Coerce searches, or the length of a versions[] list a
-// caller supplies to MaxSatisfying/MinSatisfying/Sort. Those three are capped
-// here as a deliberately simple, generous, defense-in-depth ceiling — not
-// because a legitimate range/list ever approaches it.
+// upstream and this package inherits it for free, and mirroring it here
+// lets this package's own structured error fire before node-semver's
+// generic one does. Range/text/list-length are NOT capped here — node-semver
+// itself doesn't cap them either, and further bounding caller-supplied input
+// size is the platform's job, not this package's.
 
 import * as semverModule from 'semver';
 
@@ -28,30 +26,12 @@ import * as semverModule from 'semver';
  * generic one does. */
 export const MAX_VERSION_CHARS = 256;
 
-/** Ceiling for a range string. A real-world range (even a hand-built
- * "1.2.3 || 2.x || >=3.0.0 <4.0.0") is well under 200 characters; this leaves
- * two full orders of magnitude of headroom while still bounding cost. */
-export const MAX_RANGE_CHARS = 2_000;
-
-/** Ceiling for the free-form text Coerce searches for a version inside. */
-export const MAX_TEXT_CHARS = 10_000;
-
-/** Ceiling for a versions[] list (MaxSatisfying / MinSatisfying / Sort). */
-export const MAX_LIST_ENTRIES = 2_000;
-
 export class BoundsError extends Error {}
 
 /** Rejects an oversized string field before it reaches node-semver. */
 export function checkLen(value: string, field: string, max: number): void {
   if (value.length > max) {
     throw new BoundsError(`${field} is longer than ${max} characters`);
-  }
-}
-
-/** Rejects an oversized list before it reaches node-semver. */
-export function checkListLen(values: string[], field: string, max: number): void {
-  if (values.length > max) {
-    throw new BoundsError(`${field} has more than ${max} entries`);
   }
 }
 

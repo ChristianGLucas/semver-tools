@@ -1,7 +1,7 @@
 import { SemverSatisfiesRequest, SemverRangePositionResult } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
 import * as semver from 'semver';
-import { MAX_VERSION_CHARS, MAX_RANGE_CHARS, checkLen, errorMessage } from './lib';
+import { MAX_VERSION_CHARS, checkLen, errorMessage } from './lib';
 
 /**
  * Report where a version sits relative to a range: "below" (lower than
@@ -28,7 +28,6 @@ export function versionVsRange(ax: AxiomContext, input: SemverSatisfiesRequest):
     const version = input.getVersion();
     const range = input.getRange();
     checkLen(version, 'version', MAX_VERSION_CHARS);
-    checkLen(range, 'range', MAX_RANGE_CHARS);
 
     const opts = {
       loose: input.getLoose(),

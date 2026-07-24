@@ -1,5 +1,5 @@
 name: christiangeorgelucas/semver-tools
-version: 0.1.0
+version: 0.2.0
 language: typescript
 description: >-
   Composable Axiom semantic-versioning nodes wrapping npm/node-semver (ISC

@@ -1,7 +1,7 @@
 import { SemverRangeRequest, SemverComparatorSets, SemverComparatorSet } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
 import * as semver from 'semver';
-import { MAX_RANGE_CHARS, checkLen, errorMessage } from './lib';
+import { errorMessage } from './lib';
 
 /**
  * Decompose a range into its normal form: an OR-list of ANDed comparator
@@ -25,7 +25,6 @@ export function toComparators(ax: AxiomContext, input: SemverRangeRequest): Semv
   const out = new SemverComparatorSets();
   try {
     const range = input.getRange();
-    checkLen(range, 'range', MAX_RANGE_CHARS);
 
     const opts = {
       loose: input.getLoose(),

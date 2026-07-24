@@ -1,7 +1,7 @@
 import { SemverRangeRequest, SemverRangeResult } from '../gen/messages_pb';
 import { AxiomContext } from '../gen/axiomContext';
 import * as semver from 'semver';
-import { MAX_RANGE_CHARS, checkLen, errorMessage } from './lib';
+import { errorMessage } from './lib';
 
 /**
  * Validate a range and normalize it to its comparator-set form, e.g.
@@ -20,7 +20,6 @@ export function cleanRange(ax: AxiomContext, input: SemverRangeRequest): SemverR
   const out = new SemverRangeResult();
   try {
     const range = input.getRange();
-    checkLen(range, 'range', MAX_RANGE_CHARS);
 
     const cleaned = semver.validRange(range, {
       loose: input.getLoose(),
